@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    command: ["serve", "--db-path=/app/data.db", "--listen-addr=:8090"]
+    ports:
+      - "8090:8090"
+    volumes:
+      - app-data:/app
+    working_dir: /app
+
+  cleanup:
+    build: .
+    command: ["cleanup", "--db-path=/app/data.db"]
+    volumes:
+      - app-data:/app
+    working_dir: /app
+    profiles:
+      - cleanup
+
+volumes:
+  app-data:

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Uploader</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        h1 { font-size: 1.5rem; }
+
+        /* Upload button */
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        /* Modal */
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 32px;
+            width: 90%;
+            max-width: 480px;
+        }
+        .modal h2 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            color: #64748b;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .drop-zone input[type="file"] { display: none; }
+
+        /* Progress */
+        .upload-progress {
+            display: none;
+            margin-top: 16px;
+            text-align: center;
+        }
+        .upload-progress.active { display: block; }
+        .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        /* Result */
+        .upload-result {
+            display: none;
+            margin-top: 16px;
+        }
+        .upload-result.active { display: block; }
+        .upload-result.error .result-message { color: #dc2626; }
+        .result-message {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .result-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            resize: vertical;
+            color: #333;
+            background: #f8fafc;
+        }
+        .btn-copy {
+            margin-top: 8px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-copy:hover { background: #e2e8f0; }
+
+        /* Modal footer */
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #333;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-secondary:hover { background: #e2e8f0; }
+
+        /* Image grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+        .image-item { text-align: center; }
+        .image-item a { display: block; }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+        }
+        .image-item p {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Image Uploader</h1>
+        <button class="btn btn-primary" id="open-modal">Upload</button>
+    </header>
+
+    <div class="image-grid">
+        {{range .Images}}
+        <div class="image-item">
+            <a href="{{.ImagePath}}" target="_blank">
+                <img src="{{.ThumbnailPath}}" alt="{{.Filename}}" loading="lazy">
+            </a>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h2>Upload Images</h2>
+
+            <div class="drop-zone" id="drop-zone">
+                <p>Drop files here or click to select</p>
+                <p style="font-size: 0.8rem; margin-top: 8px;">JPG, PNG (max 40MB)</p>
+                <input type="file" id="file-input" multiple accept="image/jpeg,image/png">
+            </div>
+
+            <div class="upload-progress" id="upload-progress">
+                <div class="spinner"></div>
+                <p class="progress-text">Uploading...</p>
+            </div>
+
+            <div class="upload-result" id="upload-result">
+                <p class="result-message" id="result-message"></p>
+                <textarea class="result-textarea" id="result-textarea" readonly></textarea>
+                <button class="btn btn-copy" id="copy-links">Copy</button>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="close-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const overlay = document.getElementById('modal-overlay');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const progress = document.getElementById('upload-progress');
+        const result = document.getElementById('upload-result');
+        const resultMessage = document.getElementById('result-message');
+        const resultTextarea = document.getElementById('result-textarea');
+        const copyBtn = document.getElementById('copy-links');
+
+        document.getElementById('open-modal').addEventListener('click', () => {
+            resetModal();
+            overlay.classList.add('active');
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            overlay.classList.remove('active');
+            if (result.classList.contains('active') && !result.classList.contains('error')) {
+                location.reload();
+            }
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+                if (result.classList.contains('active') && !result.classList.contains('error')) {
+                    location.reload();
+                }
+            }
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                uploadFiles(e.dataTransfer.files);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFiles(fileInput.files);
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            resultTextarea.select();
+            navigator.clipboard.writeText(resultTextarea.value).then(() => {
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+            });
+        });
+
+        function resetModal() {
+            progress.classList.remove('active');
+            result.classList.remove('active', 'error');
+            resultTextarea.value = '';
+            fileInput.value = '';
+            dropZone.style.display = '';
+        }
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('file', file);
+            }
+
+            dropZone.style.display = 'none';
+            progress.classList.add('active');
+            result.classList.remove('active', 'error');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload');
+
+            xhr.addEventListener('load', () => {
+                progress.classList.remove('active');
+                result.classList.add('active');
+
+                if (xhr.status === 200) {
+                    resultMessage.textContent = 'Upload complete';
+                    resultTextarea.value = xhr.responseText.trim();
+                } else {
+                    result.classList.add('error');
+                    resultMessage.textContent = xhr.responseText.trim();
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                progress.classList.remove('active');
+                result.classList.add('active', 'error');
+                resultMessage.textContent = 'Upload failed';
+            });
+
+            xhr.send(formData);
+        }
+    </script>
+</body>
+</html>
