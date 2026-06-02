@@ -91,8 +91,8 @@ func getRecentImages(limit int) ([]ImageInfo, error) {
 			if err := json.Unmarshal(v, &info); err != nil {
 				return fmt.Errorf("unmarshal image info: %w", err)
 			}
-			info.ThumbnailPath = "/thumb/" + info.ThumbnailFilename
-			info.ImagePath = "/image/" + info.Filename
+			info.ThumbnailPath = "/thumbs/" + info.ThumbnailFilename
+			info.ImagePath = "/images/" + info.Filename
 			images = append(images, info)
 			count++
 		}

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	uploadDir      = "./image"
-	thumbnailDir   = "./thumb"
+	uploadDir      = "./images"
+	thumbnailDir   = "./thumbs"
 	maxUploadSize  = 40 * 1024 * 1024 // 40MB
 	thumbnailSize  = 120
 	displayLimit   = 480
@@ -99,11 +99,11 @@ func runServe(args []string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /upload", uploadHandler)
 	mux.HandleFunc("GET /{$}", indexHandler)
-	mux.Handle("GET /image/", http.StripPrefix("/image/", http.FileServer(http.Dir(uploadDir))))
-	mux.Handle("GET /thumb/", http.StripPrefix("/thumb/", http.FileServer(http.Dir(thumbnailDir))))
+	mux.Handle("GET /images/", http.StripPrefix("/images/", http.FileServer(http.Dir(uploadDir))))
+	mux.Handle("GET /thumbs/", http.StripPrefix("/thumbs/", http.FileServer(http.Dir(thumbnailDir))))
 
 	slog.Info("starting server", "addr", *listenAddr)
-	if err := http.ListenAndServe(*listenAddr, mux); err != nil {
+	if err := http.ListenAndServe(*listenAddr, accessLog(mux)); err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}

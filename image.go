@@ -50,7 +50,8 @@ func processFile(fh *multipart.FileHeader) (string, int, string) {
 		return "database error", http.StatusInternalServerError, ""
 	}
 	if existingFilename != "" {
-		return "", http.StatusOK, "/image/" + existingFilename
+		slog.Info("duplicate detected", "sha256", sha256sum[:12], "filename", existingFilename)
+		return "", http.StatusOK, "/images/" + existingFilename
 	}
 
 	if _, err := src.Seek(0, io.SeekStart); err != nil {
@@ -73,7 +74,8 @@ func processFile(fh *multipart.FileHeader) (string, int, string) {
 		return "failed to save to database", http.StatusInternalServerError, ""
 	}
 
-	return "", http.StatusOK, "/image/" + filename
+	slog.Info("uploaded image", "filename", filename, "thumbnail", thumbnailFilename, "bytes", fh.Size)
+	return "", http.StatusOK, "/images/" + filename
 }
 
 func saveFile(src io.Reader, filename string) error {
