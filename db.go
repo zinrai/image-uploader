@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,9 +12,12 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+var errNotFound = errors.New("sha256 not found in database")
+
 const (
-	bucketImages = "images"
-	bucketSHA256 = "sha256"
+	bucketImages    = "images"
+	bucketSHA256    = "sha256"
+	bucketBlocklist = "blocklist"
 )
 
 type ImageInfo struct {
@@ -101,6 +105,55 @@ func getRecentImages(limit int) ([]ImageInfo, error) {
 	})
 
 	return images, err
+}
+
+func isBlocked(sha256sum string) (bool, error) {
+	var blocked bool
+	err := db.View(func(tx *bolt.Tx) error {
+		if tx.Bucket([]byte(bucketBlocklist)).Get([]byte(sha256sum)) != nil {
+			blocked = true
+		}
+		return nil
+	})
+	return blocked, err
+}
+
+func blockSHA256(sha256sum string) (filename, thumbnail string, err error) {
+	err = db.Update(func(tx *bolt.Tx) error {
+		sha := tx.Bucket([]byte(bucketSHA256))
+		images := tx.Bucket([]byte(bucketImages))
+		bl := tx.Bucket([]byte(bucketBlocklist))
+
+		imageKey := sha.Get([]byte(sha256sum))
+		if imageKey == nil {
+			return errNotFound
+		}
+		data := images.Get(imageKey)
+		if data == nil {
+			return errNotFound
+		}
+		var info ImageInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			return err
+		}
+		filename = info.Filename
+		thumbnail = info.ThumbnailFilename
+
+		if err := images.Delete(imageKey); err != nil {
+			return err
+		}
+		if err := sha.Delete([]byte(sha256sum)); err != nil {
+			return err
+		}
+		return bl.Put([]byte(sha256sum), nil)
+	})
+	return
+}
+
+func unblockSHA256(sha256sum string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket([]byte(bucketBlocklist)).Delete([]byte(sha256sum))
+	})
 }
 
 func cleanupOldImages(limit int) (int, error) {

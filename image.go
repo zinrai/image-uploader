@@ -45,6 +45,14 @@ func processFile(fh *multipart.FileHeader) (string, int, string) {
 	}
 	sha256sum := hex.EncodeToString(hash.Sum(nil))
 
+	blocked, err := isBlocked(sha256sum)
+	if err != nil {
+		return "database error", http.StatusInternalServerError, ""
+	}
+	if blocked {
+		return "bad request", http.StatusBadRequest, ""
+	}
+
 	existingFilename, err := findBySHA256(sha256sum)
 	if err != nil {
 		return "database error", http.StatusInternalServerError, ""

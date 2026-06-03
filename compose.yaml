@@ -17,5 +17,23 @@ services:
     profiles:
       - cleanup
 
+  block:
+    build: .
+    command: ["block", "--db-path=/app/data.db", "${SHA:?SHA env var required}"]
+    volumes:
+      - app-data:/app
+    working_dir: /app
+    profiles:
+      - block
+
+  unblock:
+    build: .
+    command: ["unblock", "--db-path=/app/data.db", "${SHA:?SHA env var required}"]
+    volumes:
+      - app-data:/app
+    working_dir: /app
+    profiles:
+      - unblock
+
 volumes:
   app-data:
