@@ -19,7 +19,7 @@ services:
 
   block:
     build: .
-    command: ["block", "--db-path=/app/data.db", "${SHA:?SHA env var required}"]
+    entrypoint: ["image-uploader", "block", "--db-path=/app/data.db"]
     volumes:
       - app-data:/app
     working_dir: /app
@@ -28,7 +28,7 @@ services:
 
   unblock:
     build: .
-    command: ["unblock", "--db-path=/app/data.db", "${SHA:?SHA env var required}"]
+    entrypoint: ["image-uploader", "unblock", "--db-path=/app/data.db"]
     volumes:
       - app-data:/app
     working_dir: /app

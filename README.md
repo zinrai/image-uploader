@@ -52,7 +52,7 @@ $ ./image-uploader block <sha256>
 With Docker Compose:
 
 ```
-$ SHA=<sha256> docker compose run --rm block
+$ docker compose run --rm block <sha256>
 ```
 
 ### unblock
@@ -66,7 +66,7 @@ $ ./image-uploader unblock <sha256>
 With Docker Compose:
 
 ```
-$ SHA=<sha256> docker compose run --rm unblock
+$ docker compose run --rm unblock <sha256>
 ```
 
 ## Configuration

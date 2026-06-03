@@ -141,6 +141,10 @@ func runBlock(args []string) {
 	dbPath := fs.String("db-path", defaultDBPath, "Path to the bbolt database file")
 	fs.Parse(args)
 
+	if fs.Arg(0) == "" {
+		slog.Error("missing SHA-256 argument")
+		os.Exit(1)
+	}
 	sha := strings.ToLower(fs.Arg(0))
 	if !validSHA256(sha) {
 		slog.Error("invalid SHA-256", "value", fs.Arg(0))
@@ -175,6 +179,10 @@ func runUnblock(args []string) {
 	dbPath := fs.String("db-path", defaultDBPath, "Path to the bbolt database file")
 	fs.Parse(args)
 
+	if fs.Arg(0) == "" {
+		slog.Error("missing SHA-256 argument")
+		os.Exit(1)
+	}
 	sha := strings.ToLower(fs.Arg(0))
 	if !validSHA256(sha) {
 		slog.Error("invalid SHA-256", "value", fs.Arg(0))
