@@ -62,7 +62,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		scheme := "http"
-		if r.TLS != nil {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			scheme = proto
+		} else if r.TLS != nil {
 			scheme = "https"
 		}
 		links = append(links, fmt.Sprintf("%s://%s%s", scheme, r.Host, imagePath))
