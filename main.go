@@ -78,6 +78,8 @@ func main() {
 		runBlock(os.Args[2:])
 	case "unblock":
 		runUnblock(os.Args[2:])
+	case "version":
+		printVersion()
 	default:
 		usage()
 	}
